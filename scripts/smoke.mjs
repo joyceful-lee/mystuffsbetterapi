@@ -3,7 +3,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import { migrateGuest, writeGuest, GUEST_KEY } from '../lib/guest-state.mjs';
 import { allFavorites } from '../lib/collection.mjs';
 import { binderAppearanceStyle } from '../lib/appearance.mjs';
-const base=process.env.TEST_URL||'http://localhost:3001';
+const base=process.env.TEST_URL||'http://localhost:3002';
 const picture='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aQ5kAAAAASUVORK5CYII=';
 const stamp=Date.now();
 function client(){const jar=new Map();return async(path,method='GET',body,origin=true)=>{const headers={cookie:[...jar].map(([k,v])=>`${k}=${v}`).join('; ')};if(origin)headers.origin=base;if(body)headers['content-type']='application/json';const response=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined,redirect:'manual'});for(const line of response.headers.getSetCookie()){const [name,...parts]=line.split(';')[0].split('=');jar.set(name,parts.join('='));}const raw=await response.text();let data;try{data=JSON.parse(raw);}catch{data=raw;}return {status:response.status,data};};}
@@ -21,7 +21,7 @@ console.log('PASS unauthenticated access and cross-origin protections');
 const created=await a('/api/binders','POST',{name:`QA collection ${stamp}`,game:'Other',color:'purple'});assert.equal(created.status,201,JSON.stringify(created.data));const id=created.data.binder.id;
 const added=await a('/api/cards','POST',{binderId:id,name:'QA pixel card',image:picture,rarity:'Rare',favorite:false});assert.equal(added.status,201,JSON.stringify(added.data));const cardId=added.data.card.id;
 assert.equal((await a(`/api/cards/${cardId}`,'PATCH',{favorite:true})).status,200);
-let own=(await a('/api/binders')).data.binders.find(x=>x.id===id);assert.equal(own.cards[0].favorite,true);assert.equal(own.cards[0].image,picture);
+let own=(await a('/api/binders')).data.binders.find(x=>x.id===id);assert.equal(own.cards[0].favorite,true);assert.ok(own.cards[0].image===picture||own.cards[0].image===`/api/cards/${cardId}/image`);
 assert.equal((await b('/api/binders')).data.binders.length,0);
 assert.equal((await b(`/api/binders/${id}`,'PATCH',{shared:true})).status,404);
 assert.equal((await b(`/api/cards/${cardId}`,'PATCH',{favorite:false})).status,404);

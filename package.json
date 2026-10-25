@@ -1,17 +1,18 @@
 {
-  "name": "mystuffsbetter",
+  "name": "mystuffsbetterapi",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "next dev --port 3002",
     "build": "next build",
-    "start": "next start --port 3001",
+    "start": "next start --port 3002",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.6.0-beta",
     "@neondatabase/serverless": "^1.2.0",
+    "@vercel/blob": "^2.8.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.4",
     "react": "19.2.6",

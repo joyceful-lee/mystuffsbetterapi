@@ -16,7 +16,7 @@ jobs:
       # Build-only placeholders. Unit tests and compilation never use live Neon.
       NEON_AUTH_BASE_URL: https://example.invalid/neonauth
       NEON_AUTH_COOKIE_SECRET: ci-only-placeholder-secret-at-least-32-characters
-      APP_URL: http://localhost:3001
+      APP_URL: http://localhost:3002
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
