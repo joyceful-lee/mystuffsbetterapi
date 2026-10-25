@@ -15,19 +15,32 @@ npm run dev
 
 Open http://localhost:3002. Create an ignored `.env.local` from `.env.example` with credentials for this version. Never commit it. `.env.example` lists the required environment variables.
 
-## Source database reference
+## Pokémon card matching
 
-These identifiers describe the original basic version. Do not reuse its production data for API experiments; provision an isolated Neon branch or project and configure Neon Auth for port 3002.
+Pokémon card forms include **Find Pokémon card matches**, powered by the free, keyless [TCGdex API](https://tcgdex.dev/faq/). PokéAPI provides species/game data rather than trading-card printings, so this version uses TCGdex for scans and collector details.
 
-### Original project
+Enter a card name, or a set and collector number. The set/deck field is treated as a set name or set ID when searching Pokémon cards; clear a custom deck name to search by name alone. Exact set and number combinations rank first, followed by number (including printed set totals), set, and exact name. Padded numbers such as `004/102` match `4`. A set-and-number lookup can show the right printing even when the name is mistyped. Name-only searches show all matching printings in pages of 24. The collector chooses a picture, reviews the populated name, set, number and rarity, and saves normally. Unknown catalog rarities require review instead of being guessed. Different foil finishes can share the same catalog scan. Catalog images can be replaced with an uploaded picture.
 
-- Project: **MyStuffsBetter**, `spring-rain-95366292`
-- Branch: **main**, `br-twilight-bread-art6evec`
-- Database: **mystuffsbetter**, PostgreSQL 18
-- Region: AWS US West 2
-- Console: https://console.neon.tech/app/projects/spring-rain-95366292
-- Authentication: Neon Auth (Better Auth), email/password enabled
-- Schema: `db/schema.sql` has already been applied to this database.
+Before using search, apply `db/migrations/005-pokemon-catalog.sql` to **this API version's isolated database** (new installs can use the complete `db/schema.sql`). No API key or paid catalog plan is required. Neon/database and Blob usage still count against their respective hosting plans. The configured API deployment uses the isolated resources listed below.
+
+The server checks the shared `pokemon_catalog_cache` table before requesting TCGdex. Searches and set contents are cached for 7 days; the set index and full card metadata for 30 days; copied WebP image bytes (stored as data URLs in Neon) for 10 years. Expired cached entries remain usable during provider outages. Only public catalog data lives in this shared cache. Catalog preview URLs do not contain private account images. Account card fields and chosen images continue through the existing owner-authorized save/upload paths; guest copies stay in the browser until import. Deleting a collector's card does not delete the shared catalog image. Provider requests have timeouts, response size limits, fixed hosts, and no redirects. Missing database setup or provider errors leave manual entry available. Images missing from the catalog can be uploaded manually.
+
+To force a catalog refresh, an operator can delete the appropriate `tcgdex:en:v1:` cache key from this version's isolated database. No automatic migrations run on requests.
+
+## Isolated API deployment
+
+This repository is connected to its own resources:
+
+- Vercel project: **mystuffsbetterapi**, `prj_gVB8u81OYJYDEWHxVjvC961d1ch5`, under `leejoyce21-7656`.
+- Production URL: https://mystuffsbetterapi.vercel.app (Vercel's default deployment protection applies).
+- Neon project: **MyStuffsBetter API**, `morning-hat-42972726`, PostgreSQL 18 in AWS US West 2.
+- Database: **mystuffsbetterapi**. Production uses `main` (`br-young-waterfall-arw5o0fp`); preview/development use `development` (`br-plain-butterfly-arristl6`). Each branch has its own Neon Auth endpoint and cookie secret.
+- Private image store: **mystuffsbetterapi-images**, `store_jPO8AA6VgMrd2kMq`, in `pdx1`.
+- Console: https://console.neon.tech/app/projects/morning-hat-42972726
+
+The complete schema, including the Pokemon catalog cache, is installed on both branches. The ignored `.vercel/project.json` links this checkout to this API project. The ignored `.env.local` uses the development branch and port 3002. Production secrets are stored only in Vercel. Preview auth origins must be registered on the development branch when a new preview URL is used.
+
+These resources are separate from the basic app's database, authentication users, Vercel project, and image store. Provisioning through the connected Neon tools used the existing free Neon organization; it is configured in Vercel with project-scoped environment variables rather than a Marketplace-managed database resource.
 
 ## How it works
 

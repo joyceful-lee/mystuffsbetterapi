@@ -1,0 +1,1 @@
+export function readThroughCache<T>(store:{read:(key:string)=>Promise<{payload:T;expiresAt:string}|undefined>;write:(key:string,payload:T,expires:Date)=>Promise<void>},key:string,ttl:number,fetchValue:()=>Promise<T>,now?:number):Promise<T>;
