@@ -1,0 +1,14 @@
+export const GUEST_CARD_LIMIT: number;
+export const IMPORT_BATCH_SIZE: number;
+export const GUEST_IMAGE_DATA_LIMIT: number;
+export const binderColors: [string, ...string[]];
+export const backgroundColors: [string, ...string[]];
+export const games: [string, ...string[]];
+export const binderThemes: Record<string,{label:string;colors:string[];backgrounds:string[];neutralPool:string[]}>;
+export const neutralColors:Record<string,string>;
+export function backgroundPaletteFor(theme:string):string[];
+export function paletteFor(theme:string,currentColor?:string):string[];
+export const raritiesByGame: Record<string, string[]>;
+export function raritiesFor(game: string): string[];
+export function isRarityForGame(game: string, rarity: string): boolean;
+export function rarityRank(game: string, rarity: string): number;
