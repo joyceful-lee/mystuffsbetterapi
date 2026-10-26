@@ -52,27 +52,30 @@ async function magic(query:Query){
 }
 async function yugioh(query:Query){
  const base='https://db.ygoprodeck.com/api/v7/';
- let params:URLSearchParams;
+ let queries:URLSearchParams[];
  if(/^[a-z0-9]+-[a-z0-9]+$/i.test(query.number)){
   const found=await source('yugioh',base+'cardsetsinfo.php?'+new URLSearchParams({setcode:query.number.toUpperCase()}));
   if(found===null)return {cards:[],truncated:false};
-  const card=z.object({name:text}).parse(found);params=new URLSearchParams({name:card.name});
- }else if(query.name){params=new URLSearchParams({fname:query.name});}
+  const card=z.object({name:text}).parse(found);queries=[new URLSearchParams({name:card.name})];
+ }else if(query.name){queries=[new URLSearchParams({fname:query.name})];}
  else{
   const all=z.array(z.object({set_name:text,set_code:text})).parse(await source('yugioh',base+'cardsets.php',30*DAY));
   const sets=narrowSets(all.map(set=>({id:set.set_code,name:set.set_name})),query.set);
   if(!sets.length)return {cards:[],truncated:false};
-  if(sets.length>1)throw new ApiError('Use an exact Yu-Gi-Oh! set name or full card code.');
-  params=new URLSearchParams({cardset:sets[0].name});
+  queries=sets.map(set=>new URLSearchParams({cardset:set.name}));
  }
- params.set('num','500');params.set('offset','0');
- const raw=await source('yugioh',base+'cardinfo.php?'+params);
- if(raw===null)return {cards:[],truncated:false};
- const data=z.object({data:z.array(ygoCard).max(500),meta:z.object({pages_remaining:z.number().optional()}).optional()}).parse(raw);
- let cards=yugiohCards(data.data);
+ const rawCards=new Map<number,z.infer<typeof ygoCard>>();let truncated=false;
+ for(const params of queries){
+  params.set('num','500');params.set('offset','0');
+  const raw=await source('yugioh',base+'cardinfo.php?'+params);if(raw===null)continue;
+  const data=z.object({data:z.array(ygoCard).max(500),meta:z.object({pages_remaining:z.number().optional()}).optional()}).parse(raw);
+  for(const card of data.data)rawCards.set(card.id,card);
+  truncated=truncated||!!data.meta?.pages_remaining;
+ }
+ let cards=yugiohCards([...rawCards.values()]);
  if(query.set){const sets=narrowSets([...new Map(cards.map(card=>[card.setName,{id:card.setId,name:card.setName}])).values()],query.set);const names=new Set(sets.map(set=>set.name));cards=cards.filter(card=>names.has(card.setName));}
  if(query.number){const matches=exactNumber(cards,query.number);if(matches.length)cards=matches;}
- return {cards,truncated:!!data.meta?.pages_remaining};
+ return {cards,truncated};
 }
 async function onePiece(query:Query){
  const base='https://optcgapi.com/api/';
@@ -97,10 +100,11 @@ async function onePiece(query:Query){
 
 export async function searchTradingCards(game:Game,query:Query){
  const found=await ({magic,yugioh,'one-piece':onePiece}[game])(query);
- const ranked=rankTradingCards(found.cards,query).map(card=>({...card,hasImage:supportedCatalogImage(game,card.image)}));
+ const allRanked=rankTradingCards(found.cards,query);
+ const ranked=allRanked.slice(0,6000).map(card=>({...card,hasImage:supportedCatalogImage(game,card.image)}));
  const cards=ranked.slice((query.page-1)*24,query.page*24);
  if(cards.length)await sql()`INSERT INTO pokemon_catalog_cache(cache_key,payload,expires_at) SELECT ${namespace(game)+':record:'}||(item->>'id'),item,now()+interval '10 years' FROM jsonb_array_elements(${JSON.stringify(cards)}::jsonb) item ON CONFLICT(cache_key) DO NOTHING`;
- return {cards:cards.map(({metadata,image,...card})=>card),total:ranked.length,page:query.page,hasMore:query.page*24<ranked.length,truncated:found.truncated};
+ return {cards:cards.map(({metadata,image,...card})=>card),total:ranked.length,page:query.page,hasMore:query.page*24<ranked.length,truncated:found.truncated||allRanked.length>6000};
 }
 export async function tradingCardDetail(game:Game,id:string):Promise<TradingCard>{
  recordId.parse(id);

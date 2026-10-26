@@ -47,6 +47,8 @@ test('set lookup prefers exact codes and names over similarly named expansions',
  assert.deepEqual(matchingSets(sets,'op01'),[sets[0]]);
  assert.deepEqual(matchingSets(sets,'Romance Dawn'),[sets[0]]);
  assert.equal(matchingSets(sets,'not a set').length,0);
+ const reprints=[{id:'LOB',name:'Legend of Blue Eyes White Dragon'},{id:'LOB',name:'Legend of Blue Eyes White Dragon (25th Anniversary Edition)'}];
+ assert.deepEqual(matchingSets(reprints,'LOB'),reprints);
 });
 test('catalog image downloads only accept exact provider hosts and supported image paths',()=>{
  assert.equal(supportedCatalogImage('magic','https://cards.scryfall.io/normal/front/card.jpg?123'),true);
