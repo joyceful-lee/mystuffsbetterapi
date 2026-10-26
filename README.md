@@ -27,6 +27,24 @@ The server checks the shared `pokemon_catalog_cache` table before requesting TCG
 
 To force a catalog refresh, an operator can delete the appropriate `tcgdex:en:v1:` cache key from this version's isolated database. No automatic migrations run on requests.
 
+## Magic, Yu-Gi-Oh!, and One Piece matching
+
+Card forms for **Magic**, **Yu-Gi-Oh!**, and **One Piece** now use the same review-and-select workflow as Pokemon:
+
+| Game | Free provider | Matching and choices |
+| --- | --- | --- |
+| Magic | [Scryfall](https://scryfall.com/docs/api) | Physical card printings, set name/code, collector number, and separate face images for double-faced cards. Broad searches are bounded to four provider pages; refine with a set or number if more results exist. |
+| Yu-Gi-Oh! | [YGOPRODeck](https://api.ygoprodeck.com/api-guide/) | Full set codes such as `LOB-EN001`, set names/codes, rarity, and alternate artwork. The source does not reliably associate each artwork with a set; results explicitly disclose this and the collector checks the scan. |
+| One Piece | [OPTCG API](https://optcgapi.com/documentation) | English booster/starter cards, promos, and DON!! cards; printed codes such as `OP01-001` preserve alternate-art and promo choices. |
+
+Enter a name, or a set and number. Full Yu-Gi-Oh!/One Piece codes can also be searched without a name. Exact set + number matches rank first. Collector-number aliases allow `001` within a selected set while preserving full printed codes in saved cards. Rarity mappings use each game's allowed choices; unknown labels require a manual choice. Custom deck names should be cleared from the set/deck field for catalog lookup. Riftbound and Other retain manual entry and uploads; no Riot assets are fetched.
+
+These integrations use `/api/catalog/{magic|yugioh|one-piece}/search`, `/cards/{id}`, and `/cards/{id}/image`. Pokemon keeps its existing `/api/pokemon` routes. No new API keys or services are required.
+
+The existing `pokemon_catalog_cache` table is also the shared cache for these games, under separate `catalog:v1:<game>:` namespaces. Source responses are cached for 7 days (set indexes for 30 days), selected printing snapshots and copied image bytes for 10 years. Preview images are served through this app and copied into Neon, not repeatedly hotlinked; identical artwork URLs share an image cache entry across printings. Only public catalog data is shared. Account images and guest imports retain their existing private Blob/owner/share handling.
+
+Provider requests use descriptive headers, timeouts, response-size limits, HTTPS host allowlists and no redirects. A shared Neon request-slot record (`catalog-rate:v1:<host>`) paces uncached requests across server instances, below Scryfall's 10/s and YGOPRODeck's 20/s API ceilings. Images also use conservative pacing. Expired source responses remain available during outages; missing catalog images leave manual uploads available. These changes reuse the installed table, so no additional database migration is needed.
+
 ## Isolated API deployment
 
 This repository is connected to its own resources:
