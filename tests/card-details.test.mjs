@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {games,raritiesFor,isRarityForGame} from '../lib/binder-config.mjs';
 import {readGuest,writeGuest,migrateGuest} from '../lib/guest-state.mjs';
 
-test('Riftbound has its own rarity choices',()=>{
- assert.ok(games.includes('Riftbound'));
+test('Riftbound is retired from game options while existing cards retain their rarities',()=>{
+ assert.equal(games.includes('Riftbound'),false);
  assert.deepEqual(raritiesFor('Riftbound'),['Common','Uncommon','Rare','Epic','Showcase','Promo']);
  assert.equal(isRarityForGame('Riftbound','Epic'),true);
  assert.equal(isRarityForGame('Riftbound','Mythic rare'),false);
